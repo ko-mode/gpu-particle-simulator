@@ -1,0 +1,9 @@
+# CMake build output
+build/
+
+# Editor files
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
