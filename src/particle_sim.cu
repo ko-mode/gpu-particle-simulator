@@ -9,7 +9,13 @@ struct Particle {
     float vy;
 };
 
-__global__ void updateParticles(Particle* particles, int n, float dt, float gravity) {
+__global__ void updateParticles(
+    Particle* particles, 
+    int n, float dt, 
+    float gravity,
+    float floorY,
+    float restitution
+) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < n) {
@@ -17,6 +23,11 @@ __global__ void updateParticles(Particle* particles, int n, float dt, float grav
 
         particles[i].x += particles[i].vx * dt;
         particles[i].y += particles[i].vy * dt;
+
+        if (particles[i].y < floorY) {
+            particles[i].y = floorY;
+            particles[i].vy = -particles[i].vy * restitution;
+        }
     }
 }
 
@@ -24,6 +35,8 @@ int main() {
     constexpr int n = 4;
     constexpr float dt = 0.016f;
     constexpr float gravity = -9.81f;
+    constexpr float floorY = -5.0f;
+    constexpr float restitution = 0.8f;
 
     Particle hostParticles[n] = {
         {0.0f, 0.0f, 1.0f, 0.5f},
@@ -46,7 +59,7 @@ int main() {
     int threadsPerBlock = 256;
     int blocks = (n + threadsPerBlock - 1) / threadsPerBlock;
 
-    constexpr int steps = 60;
+    constexpr int steps = 600;
 
     // Keep data on the CPU as long as possible 
     // As transfer time (cudaMemcpy) between the CPU and GPU is relatively expensive compared with doing arithmetic on GPU data
@@ -55,7 +68,9 @@ int main() {
             deviceParticles,
             n, 
             dt,
-            gravity
+            gravity,
+            floorY,
+            restitution
         );
     };
 
